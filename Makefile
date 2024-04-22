@@ -1,7 +1,7 @@
 NAME=ft_ping
 
 CC=gcc
-CFLAGS=-Wall -Werror -Wextra
+CFLAGS=-Wall -Werror -Wextra -std=c99
 
 SRC=src/main.c
 
