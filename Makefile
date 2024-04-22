@@ -7,6 +7,7 @@ SRC=src/main.c
 
 OBJ=$(SRC:.c=.o)
 
+INC_PATH=include/
 INC=include/main.h
 
 all: $(NAME)
