@@ -1,9 +1,10 @@
 NAME=ft_ping
 
 CC=gcc
-CFLAGS=-Wall -Werror -Wextra -std=c99
+CFLAGS=-Wall -Werror -Wextra -std=gnu99
 
-SRC=src/main.c
+SRC=src/main.c\
+	src/utils.c
 
 OBJ=$(SRC:.c=.o)
 
