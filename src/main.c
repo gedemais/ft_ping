@@ -70,8 +70,8 @@ void recv_ping(int sockfd, int seq_num, struct timeval *tv_in, struct options *o
 
     while (1) {
         struct timeval timeout;
-        timeout.tv_sec = opts->timeout;
-        timeout.tv_usec = 0;
+        timeout.tv_sec = 0;
+        timeout.tv_usec = opts->timeout * 1000;
         fd_set readfds;
         FD_ZERO(&readfds);
         FD_SET(sockfd, &readfds);
@@ -81,7 +81,7 @@ void recv_ping(int sockfd, int seq_num, struct timeval *tv_in, struct options *o
             perror("select");
             exit(EXIT_FAILURE);
         } else if (ready == 0) {
-            printf("Request timed out for sequence %d\n", seq_num);
+            //printf("Request timed out for sequence %d\n", seq_num);
             return;
         }
 
@@ -102,6 +102,7 @@ void recv_ping(int sockfd, int seq_num, struct timeval *tv_in, struct options *o
             gettimeofday(tv_in, NULL);
             double rtt = (tv_in->tv_sec - tv_out.tv_sec) * 1000.0 + (tv_in->tv_usec - tv_out.tv_usec) / 1000.0;
             printf("%ld bytes from %s (%s): icm_seq=%d ttl=%d time=%.1fms\n", recv_size - sizeof(struct iphdr), domain_name, inet_ntoa(recv_addr.sin_addr), seq_num + 1, ip_hdr->ttl, rtt);
+			fflush(stdout);
             return;
         }
     }
@@ -114,7 +115,7 @@ int main(int argc, char *argv[]) {
 	char	domain_name[NI_MAXHOST];
 
     opts.packet_size = 64; // Default packet size
-	opts.timeout = 4; // 4000 milliseconds default timeout
+	opts.timeout = 1000;
     parse_args(argc, argv, &opts, &target);
 
     int sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
@@ -127,8 +128,10 @@ int main(int argc, char *argv[]) {
     memset(&dest_addr, 0, sizeof(dest_addr));
     dest_addr.sin_family = AF_INET;
 
-	if (get_hostname_address(target, address) < 0
-		|| get_domain_name(address, domain_name) < 0)
+	if (get_hostname_address(target, address) < 0)
+		return (1);
+
+	if (get_domain_name(address, domain_name) < 0)
 		return (1);
 
     int s = inet_pton(AF_INET, address, &dest_addr.sin_addr);
@@ -140,14 +143,17 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    printf("PING %s (%s)\n", target, address);
+    printf("PING %s (%s) %ld(%ld) bytes of data.\n", target, address, opts.packet_size - sizeof(struct icmphdr), opts.packet_size + sizeof(struct iphdr));
 
-    for (int i = 0; i < 4; i++) {
-        struct timeval tv_in;
-        send_ping(sockfd, &dest_addr, i, &opts);
-        recv_ping(sockfd, i, &tv_in, &opts, domain_name);
-        sleep(1);
-    }
+	while (1)
+	{
+		for (int i = 0; i < 4; i++) {
+			struct timeval tv_in;
+			send_ping(sockfd, &dest_addr, i, &opts);
+			recv_ping(sockfd, i, &tv_in, &opts, domain_name);
+			sleep(1);
+		}
+	}
 
     close(sockfd);
     return 0;

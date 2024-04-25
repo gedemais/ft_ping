@@ -42,6 +42,8 @@ void parse_args(int argc, char *argv[], struct options *opts, char **target) {
 				opts->interval = atoi(optarg);
 				break;
 			case '?':
+				print_help(argv[0]);
+				exit(EXIT_SUCCESS);
 			default:
 				print_help(argv[0]);
 				exit(EXIT_SUCCESS);

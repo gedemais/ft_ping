@@ -15,6 +15,14 @@
 #define MAX_PACKET_SIZE 65536
 #define TIMEOUT_SEC 1
 
+struct	stats
+{
+	uint32_t	sent_packets;
+	uint32_t	received_packets;
+	uint32_t	packet_loss;
+	uint32_t	time;
+};
+
 struct options {
     int verbose;
     int flood;
