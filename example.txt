@@ -1,0 +1,9 @@
+PING google.com (172.217.20.174) 56(84) bytes of data.
+64 bytes from waw02s07-in-f174.1e100.net (172.217.20.174): icmp_seq=1 ttl=116 time=13.3 ms
+64 bytes from waw02s07-in-f174.1e100.net (172.217.20.174): icmp_seq=2 ttl=116 time=13.7 ms
+64 bytes from waw02s07-in-f174.1e100.net (172.217.20.174): icmp_seq=3 ttl=116 time=13.7 ms
+64 bytes from waw02s07-in-f174.1e100.net (172.217.20.174): icmp_seq=4 ttl=116 time=12.6 ms
+^C
+--- google.com ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3004ms
+rtt min/avg/max/mdev = 12.581/13.328/13.743/0.463 ms
