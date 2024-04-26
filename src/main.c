@@ -58,7 +58,7 @@ void send_ping(int sockfd, struct sockaddr_in *dest_addr, int seq_num, struct op
     gettimeofday(&tv_out, NULL);
 }
 
-void recv_ping(int sockfd, int seq_num, struct timeval *tv_in, struct options *opts, char domain_name[NI_MAXHOST]) {
+void recv_ping(int sockfd, int seq_num, struct timeval *tv_in, struct options *opts) {
 	//printf("----- %s -----\n", __FUNCTION__);
     struct timeval tv_out;
     struct sockaddr_in recv_addr;
@@ -101,7 +101,7 @@ void recv_ping(int sockfd, int seq_num, struct timeval *tv_in, struct options *o
         if (icmp_hdr->icmp_type == ICMP_ECHOREPLY && icmp_hdr->icmp_id == getpid() && icmp_hdr->icmp_seq == seq_num) {
             gettimeofday(tv_in, NULL);
             double rtt = (tv_in->tv_sec - tv_out.tv_sec) * 1000.0 + (tv_in->tv_usec - tv_out.tv_usec) / 1000.0;
-            printf("%ld bytes from %s (%s): icm_seq=%d ttl=%d time=%.1fms\n", recv_size - sizeof(struct iphdr), domain_name, inet_ntoa(recv_addr.sin_addr), seq_num + 1, ip_hdr->ttl, rtt);
+            printf("%ld bytes from %s: icmp_seq=%d ttl=%d time=%.3f ms\n", recv_size - sizeof(struct iphdr), inet_ntoa(recv_addr.sin_addr), seq_num, ip_hdr->ttl, rtt);
 			fflush(stdout);
             return;
         }
@@ -143,14 +143,14 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    printf("PING %s (%s) %ld(%ld) bytes of data.\n", target, address, opts.packet_size - sizeof(struct icmphdr), opts.packet_size + sizeof(struct iphdr));
+    printf("PING %s (%s): %ld data bytes.\n", target, address, opts.packet_size - sizeof(struct icmphdr));
 
 	while (1)
 	{
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < INT_MAX; i++) {
 			struct timeval tv_in;
 			send_ping(sockfd, &dest_addr, i, &opts);
-			recv_ping(sockfd, i, &tv_in, &opts, domain_name);
+			recv_ping(sockfd, i, &tv_in, &opts);
 			sleep(1);
 		}
 	}
