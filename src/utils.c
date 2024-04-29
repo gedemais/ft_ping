@@ -14,6 +14,39 @@ void print_help(char *program_name) {
 	printf("  -i interval Wait interval seconds between sending each packet\n");
 }
 
+static void	check_combinations(struct options *opts)
+{
+	if (opts->flood == 1 && opts->interval != 0)
+		fprintf(stderr, "-f and -i");
+	else
+		return ;
+		
+	fprintf(stderr, " incompatible options\n");
+	fflush(stderr);
+	exit(EXIT_FAILURE);
+}
+
+static int	load_interval(char *bin_name, char *optarg)
+{
+	int	result, len;
+	
+	len = strlen(optarg);
+	for (unsigned int i = 0; optarg[i]; i++)
+		if (len > 10 || len == 0 || isdigit(optarg[i]) == 0)
+		{
+			fprintf(stderr, "%s: Invalid format for interval\n", bin_name);
+			exit(EXIT_FAILURE);
+		}
+
+	result = atoi(optarg);
+	if (result < 0)
+	{
+		fprintf(stderr, "%s: Invalid format for interval\n", bin_name);
+		exit(EXIT_FAILURE);
+	}
+	return (result);
+}
+
 void parse_args(int argc, char *argv[], struct options *opts, char **target) {
 	int opt;
 
@@ -39,7 +72,7 @@ void parse_args(int argc, char *argv[], struct options *opts, char **target) {
 				opts->count = atoi(optarg);
 				break;
 			case 'i':
-				opts->interval = atoi(optarg);
+				opts->interval = load_interval(argv[0], optarg);
 				break;
 			case '?':
 				print_help(argv[0]);
@@ -50,10 +83,14 @@ void parse_args(int argc, char *argv[], struct options *opts, char **target) {
 		}
 	}
 
+	printf("%d\n", opts->interval);
+
+	check_combinations(opts);
+
 	if (optind < argc)
 		*target = argv[optind];
 	else {
-		fprintf(stderr, "Target host not specified.\n");
+		fprintf(stderr, "%s: missing host operand\n", argv[0]);
 		print_help(argv[0]);
 		exit(EXIT_FAILURE);
 	}

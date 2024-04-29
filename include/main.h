@@ -11,6 +11,7 @@
 #include <netinet/ip_icmp.h>
 #include <netdb.h>
 #include <signal.h>
+#include <ctype.h>
 
 #define PACKET_SIZE 64
 #define MAX_PACKET_SIZE 65536

@@ -1,5 +1,5 @@
 NAME=ft_ping
-INET_PING=inet_ping
+INET_PING=ping
 
 CC=gcc
 CFLAGS=-Wall -Werror -Wextra -std=gnu99

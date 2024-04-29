@@ -44,7 +44,7 @@ void send_ping(int sockfd, struct sockaddr_in *dest_addr, int seq_num, struct op
 	//printf("size of icmp packet : %lu\n", sizeof(icmp_packet));
 	//printf("seq_num : %d\n", seq_num);
 	//printf("total size : %u\n", opts->packet_size);
-    
+
     icmp_packet.icmp_cksum = checksum(&icmp_packet, sizeof(struct icmp) + opts->packet_size - sizeof(struct icmp));
 
 	int s = sendto(sockfd, &icmp_packet, sizeof(icmp_packet) + opts->packet_size - sizeof(struct icmp), 0, (struct sockaddr *)dest_addr, sizeof(*dest_addr));
@@ -53,7 +53,6 @@ void send_ping(int sockfd, struct sockaddr_in *dest_addr, int seq_num, struct op
     		exit(EXIT_FAILURE);
 	}
 	//printf("Number of bytes sent : %d\n", s);
-
 
     gettimeofday(&tv_out, NULL);
 }
@@ -90,13 +89,9 @@ void recv_ping(int sockfd, int seq_num, struct timeval *tv_in, struct options *o
             perror("recvfrom");
             exit(EXIT_FAILURE);
         }
-		//printf("recv_size : %ld\n", recv_size);
 
         struct iphdr *ip_hdr = (struct iphdr *)recv_buf;
         struct icmp *icmp_hdr = (struct icmp *)(recv_buf + (ip_hdr->ihl << 2));
-		//printf(
-		//		"%d, %d | %d, %d | %d, %d\n", icmp_hdr->icmp_type, ICMP_ECHOREPLY, icmp_hdr->icmp_id, getpid(), icmp_hdr->icmp_seq, seq_num
-		//	  );
 
         if (icmp_hdr->icmp_type == ICMP_ECHOREPLY && icmp_hdr->icmp_id == getpid() && icmp_hdr->icmp_seq == seq_num) {
             gettimeofday(tv_in, NULL);
@@ -151,7 +146,6 @@ int main(int argc, char *argv[]) {
 			struct timeval tv_in;
 			send_ping(sockfd, &dest_addr, i, &opts);
 			recv_ping(sockfd, i, &tv_in, &opts);
-			sleep(1);
 		}
 	}
 
