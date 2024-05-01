@@ -36,7 +36,8 @@ struct options {
 };
 
 // Utilities
-void parse_args(int argc, char *argv[], struct options *opts, char **target);
-void print_help(char *program_name);
-int	get_hostname_address(char *hostname, char address[INET_ADDRSTRLEN]);
-int get_domain_name(char ip_addr[INET_ADDRSTRLEN], char domain_name[NI_MAXHOST]);
+void	parse_args(int argc, char *argv[], struct options *opts, char **target);
+void	print_help(char *program_name);
+int		get_hostname_address(char *hostname, char address[INET_ADDRSTRLEN]);
+int		get_domain_name(char ip_addr[INET_ADDRSTRLEN], char domain_name[NI_MAXHOST]);
+void	send_ping(int sockfd, struct sockaddr_in *dest_addr, int seq_num, struct options *opts);

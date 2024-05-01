@@ -5,4 +5,4 @@ cd inetutils-2.0
 echo $((pwd))
 ./configure
 make
-cp ping/ping ../inet_ping
+cp ping/ping ../ping

@@ -5,6 +5,7 @@ CC=gcc
 CFLAGS=-Wall -Werror -Wextra -std=gnu99
 
 SRC=src/main.c\
+	src/send.c\
 	src/utils.c
 
 OBJ=$(SRC:.c=.o)

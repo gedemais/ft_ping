@@ -20,7 +20,7 @@ static void	check_combinations(struct options *opts)
 		fprintf(stderr, "-f and -i");
 	else
 		return ;
-		
+
 	fprintf(stderr, " incompatible options\n");
 	fflush(stderr);
 	exit(EXIT_FAILURE);
@@ -50,6 +50,8 @@ static int	load_interval(char *bin_name, char *optarg)
 void parse_args(int argc, char *argv[], struct options *opts, char **target) {
 	int opt;
 
+	if (argc < 2)
+		fprintf(stderr, "ping: missing host operand\nTry 'ping --help' or 'ping --usage' for more information.\n");
 	while ((opt = getopt(argc, argv, "v?fnw:W:l:c:i:")) != -1) {
 		switch (opt) {
 			case 'v':
@@ -82,8 +84,6 @@ void parse_args(int argc, char *argv[], struct options *opts, char **target) {
 				exit(EXIT_SUCCESS);
 		}
 	}
-
-	printf("%d\n", opts->interval);
 
 	check_combinations(opts);
 
