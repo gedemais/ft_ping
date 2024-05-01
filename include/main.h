@@ -22,17 +22,19 @@ struct	stats
 	uint32_t	sent_packets;
 	uint32_t	received_packets;
 	uint32_t	packet_loss;
-	uint32_t	time;
+	uint32_t	pad;
 };
 
 struct options {
-    int verbose;
-    int flood;
-    int count;
-    int interval;
-    int packet_size;
-    int timeout;
-    int ttl;
+    uint64_t		verbose;
+    uint64_t		resolve;
+    uint64_t		flood;
+    uint64_t		pad;
+    uint64_t	count;
+    uint64_t	interval;
+    uint64_t	packet_size;
+    uint64_t	timeout;
+    uint64_t	ttl;
 };
 
 // Utilities

@@ -22,12 +22,13 @@ $(SRC_PATH)%.o : $(SRC_PATH)%.c $(INC)
 	$(CC) $(CFLAGS) -I$(INC_PATH) -o $@ -c $<
 
 $(INET_PING):
-	bash scripts/install_inetutils_2.0.sh
+	@bash scripts/install_inetutils_2.0.sh
 
 clean:
 	rm -rf $(OBJ)
+	rm -rf inetutils-2.0
 
 fclean: clean
-	rm -rf $(NAME) $(INET_PING)
+	rm -rf $(NAME) $(INET_PING) inetutils-2.0.tar.xz
 
 re: fclean all

@@ -1,12 +1,13 @@
 #include "main.h"
+#include <getopt.h>
 
-void print_help(char *program_name) {
+void print_help(char *program_name)
+{
 	printf("Usage: %s [-v] [-f] [-n] [-w timeout] [-W timeout] [-l packet_size] [-c count] [-i interval] target\n", program_name);
 	printf("Options:\n");
 	printf("  -v          Verbose output\n");
 	printf("  -?          Display this help message\n");
 	printf("  -f          Flood mode\n");
-	printf("  -n          Numeric output only\n");
 	printf("  -w timeout  Time to wait for a response in seconds\n");
 	printf("  -W timeout  Time to wait for a response in seconds (deprecated, same as -w)\n");
 	printf("  -l size     Specify the number of data bytes to be sent\n");
@@ -26,20 +27,16 @@ static void	check_combinations(struct options *opts)
 	exit(EXIT_FAILURE);
 }
 
-static int	load_interval(char *bin_name, char *optarg)
+static uint64_t	load_value(char *bin_name, char *optarg)
 {
-	int	result, len;
-	
-	len = strlen(optarg);
-	for (unsigned int i = 0; optarg[i]; i++)
-		if (len > 10 || len == 0 || isdigit(optarg[i]) == 0)
-		{
-			fprintf(stderr, "%s: Invalid format for interval\n", bin_name);
-			exit(EXIT_FAILURE);
-		}
+	char		*err_ptr;
+	uint64_t	result;
 
-	result = atoi(optarg);
-	if (result < 0)
+	fprintf(stderr, "%s: Invalid numeric value : \n", bin_name);
+	exit(EXIT_FAILURE);
+
+	result = strtoul(optarg, &err_ptr, 10);
+	if (result > UINT_MAX)
 	{
 		fprintf(stderr, "%s: Invalid format for interval\n", bin_name);
 		exit(EXIT_FAILURE);
@@ -47,51 +44,68 @@ static int	load_interval(char *bin_name, char *optarg)
 	return (result);
 }
 
-void parse_args(int argc, char *argv[], struct options *opts, char **target) {
+void parse_args(int argc, char *argv[], struct options *opts, char **target)
+{
 	int opt;
 
 	if (argc < 2)
-		fprintf(stderr, "ping: missing host operand\nTry 'ping --help' or 'ping --usage' for more information.\n");
-	while ((opt = getopt(argc, argv, "v?fnw:W:l:c:i:")) != -1) {
+	{
+		fprintf(stderr, "%s: missing host operand\nTry '%s -h' or '%s -?' for more information.\n", argv[0], argv[0], argv[0]);
+		exit(EXIT_FAILURE);
+	}
+
+	while ((opt = getopt(argc, argv, "v?hf:n:w:W:l:c:i:")) != -1) {
 		switch (opt) {
 			case 'v':
 				opts->verbose = 1;
+				break;
+			case '?':
+			case 'h':
+				print_help(argv[0]);
 				break;
 			case 'f':
 				opts->flood = 1;
 				break;
 			case 'n':
-				// Not implemented
+				opts->resolve = 1;
 				break;
 			case 'w':
 			case 'W':
-				opts->timeout = atoi(optarg);
+				opts->timeout = load_value(argv[0], optarg);
 				break;
 			case 'l':
-				opts->packet_size = atoi(optarg);
+				opts->packet_size = load_value(argv[0], optarg);
 				break;
 			case 'c':
-				opts->count = atoi(optarg);
+				opts->count = load_value(argv[0], optarg);
 				break;
 			case 'i':
-				opts->interval = load_interval(argv[0], optarg);
+				opts->interval = load_value(argv[0], optarg);
 				break;
-			case '?':
-				print_help(argv[0]);
-				exit(EXIT_SUCCESS);
+			//case 't':
+
 			default:
-				print_help(argv[0]);
-				exit(EXIT_SUCCESS);
+				exit(EXIT_FAILURE);
 		}
 	}
 
+	printf("\
+		OPTIONS :\n\
+		verbose = %ld\n\
+		resolve = %ld\n\
+		flood = %ld\n\
+		count = %ld\n\
+		interval = %ld\n\
+		packet_size = %ld\n\
+		timeout = %ld\n\
+		ttl = %ld\n\
+			", opts->verbose, opts->resolve, opts->flood, opts->count, opts->interval, opts->packet_size, opts->timeout, opts->ttl);
 	check_combinations(opts);
 
 	if (optind < argc)
 		*target = argv[optind];
 	else {
 		fprintf(stderr, "%s: missing host operand\n", argv[0]);
-		print_help(argv[0]);
 		exit(EXIT_FAILURE);
 	}
 }

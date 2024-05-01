@@ -1,3 +1,5 @@
+getopt_long + strtoul (pointeur sur le charactere d'erreur quand strtoul fail)
+
 Invalid address
 Valid address
 Invalid domain name
