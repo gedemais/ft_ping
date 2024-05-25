@@ -18,7 +18,7 @@ static unsigned short checksum(void *b, int len) {
     return result;
 }
 
-void send_ping(int sockfd, struct sockaddr_in *dest_addr, int seq_num, struct options *opts) {
+void send_ping(int sockfd, struct sockaddr_in *dest_addr, uint64_t seq_num, struct options *opts, struct stats *stats) {
 	//printf("----- %s -----\n", __FUNCTION__);
     struct icmp		icmp_packet;
     struct timeval	tv_out;
@@ -28,7 +28,7 @@ void send_ping(int sockfd, struct sockaddr_in *dest_addr, int seq_num, struct op
     icmp_packet.icmp_type = ICMP_ECHO;
     icmp_packet.icmp_code = 0;
     icmp_packet.icmp_id = getpid();
-    icmp_packet.icmp_seq = seq_num;
+    icmp_packet.icmp_seq = (int)seq_num;
     icmp_packet.icmp_cksum = 0;
 
 	memcpy(packet, &icmp_packet, sizeof(struct icmp));
@@ -52,6 +52,7 @@ void send_ping(int sockfd, struct sockaddr_in *dest_addr, int seq_num, struct op
     		perror("sendto");
     		exit(EXIT_FAILURE);
 	}
+	stats->sent_packets++;
 	//printf("Number of bytes sent : %d\n", s);
 
     gettimeofday(&tv_out, NULL);

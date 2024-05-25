@@ -1,13 +1,16 @@
 #include "main.h"
 
-void recv_ping(int sockfd, int seq_num, struct timeval *tv_in, struct options *opts) {
+void recv_ping(int sockfd, int seq_num, struct timeval *tv_in, struct options *opts)
+{
 	//printf("----- %s -----\n", __FUNCTION__);
     struct timeval tv_out;
     struct sockaddr_in recv_addr;
+	struct stats	*stats;
     socklen_t addr_len = sizeof(recv_addr);
     char recv_buf[MAX_PACKET_SIZE];
     ssize_t recv_size;
 
+	stats = stats_singleton();
     gettimeofday(&tv_out, NULL);
 
     while (1) {
@@ -40,20 +43,33 @@ void recv_ping(int sockfd, int seq_num, struct timeval *tv_in, struct options *o
             gettimeofday(tv_in, NULL);
             double rtt = (tv_in->tv_sec - tv_out.tv_sec) * 1000.0 + (tv_in->tv_usec - tv_out.tv_usec) / 1000.0;
             printf("%ld bytes from %s: icmp_seq=%d ttl=%d time=%.3f ms\n", recv_size - sizeof(struct iphdr), inet_ntoa(recv_addr.sin_addr), seq_num, ip_hdr->ttl, rtt);
+			stats->received_packets++;
 			fflush(stdout);
             return;
         }
     }
 }
 
+void handle_sigint(int sig) {
+	(void)sig;
+	struct	stats *stats;
+
+	stats = stats_singleton();
+	display_stats(stats);
+    exit(0);
+}
+
+
 int main(int argc, char *argv[]) {
-    struct options opts = {0};
+    struct	options opts = {0};
+	struct	stats *stats;
     char	*target = NULL;
 	char	address[INET_ADDRSTRLEN];
 	char	domain_name[NI_MAXHOST];
 
     opts.packet_size = 64; // Default packet size
-	opts.timeout = 1000;
+	opts.timeout = 1000; // Default timeout
+	opts.interval = 1; // Default interval
     parse_args(argc, argv, &opts, &target);
 
     int sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
@@ -83,15 +99,24 @@ int main(int argc, char *argv[]) {
 
     printf("PING %s (%s): %ld data bytes.\n", target, address, opts.packet_size - sizeof(struct icmphdr));
 
-	while (1)
+	signal(SIGINT, handle_sigint);
+
+	stats = stats_singleton();
+	stats->target = target;
+	uint64_t i = 0;
+
+	// Ping main loop
+	while (opts.count == 0 || i < opts.count)
 	{
-		for (int i = 0; i < INT_MAX; i++) {
-			struct timeval tv_in;
-			send_ping(sockfd, &dest_addr, i, &opts);
-			recv_ping(sockfd, i, &tv_in, &opts);
-		}
+		struct timeval tv_in;
+		send_ping(sockfd, &dest_addr, i, &opts, stats);
+		recv_ping(sockfd, i, &tv_in, &opts);
+		sleep(opts.interval);
+		i++;
 	}
 
     close(sockfd);
+
+	display_stats(stats);
     return 0;
 }

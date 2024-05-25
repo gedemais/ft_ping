@@ -1,30 +1,10 @@
 #include "main.h"
 #include <getopt.h>
 
-void print_help(char *program_name)
-{
-	printf("Usage: %s [-v] [-f] [-n] [-w timeout] [-W timeout] [-l packet_size] [-c count] [-i interval] target\n", program_name);
-	printf("Options:\n");
-	printf("  -v          Verbose output\n");
-	printf("  -?          Display this help message\n");
-	printf("  -f          Flood mode\n");
-	printf("  -w timeout  Time to wait for a response in seconds\n");
-	printf("  -W timeout  Time to wait for a response in seconds (deprecated, same as -w)\n");
-	printf("  -l size     Specify the number of data bytes to be sent\n");
-	printf("  -c count    Stop after sending (and receiving) count ECHO_RESPONSE packets\n");
-	printf("  -i interval Wait interval seconds between sending each packet\n");
-}
-
 static void	check_combinations(struct options *opts)
 {
-	if (opts->flood == 1 && opts->interval != 0)
-		fprintf(stderr, "-f and -i");
-	else
-		return ;
-
-	fprintf(stderr, " incompatible options\n");
-	fflush(stderr);
-	exit(EXIT_FAILURE);
+	if (opts->flood == 1)
+		opts->interval = 0;
 }
 
 static uint64_t	load_value(char *bin_name, char *optarg)
@@ -32,62 +12,77 @@ static uint64_t	load_value(char *bin_name, char *optarg)
 	char		*err_ptr;
 	uint64_t	result;
 
-	fprintf(stderr, "%s: Invalid numeric value : \n", bin_name);
-	exit(EXIT_FAILURE);
 
 	result = strtoul(optarg, &err_ptr, 10);
 	if (result > UINT_MAX)
 	{
-		fprintf(stderr, "%s: Invalid format for interval\n", bin_name);
+		fprintf(stderr, "%s: Invalid number format : %s\n", bin_name, err_ptr);
 		exit(EXIT_FAILURE);
 	}
 	return (result);
 }
 
-void parse_args(int argc, char *argv[], struct options *opts, char **target)
-{
-	int opt;
+void print_help(char *prog_name) {
+    printf("Usage: %s [options] target\n", prog_name);
+    printf("Options:\n");
+    printf("  -v, --verbose       Enable verbose output\n");
+    printf("  -h, --help          Display this help message\n");
+    printf("  -f  --flood         Enable flood mode\n");
+    printf("  -w, --timeout       Set timeout value\n");
+    printf("  -c  --count         Set packets count\n");
+    printf("  -i  --interval      Set interval\n");
+    printf("  -t  --ttl           Set time to live\n");
+    exit(EXIT_SUCCESS);
+}
 
-	if (argc < 2)
-	{
-		fprintf(stderr, "%s: missing host operand\nTry '%s -h' or '%s -?' for more information.\n", argv[0], argv[0], argv[0]);
-		exit(EXIT_FAILURE);
-	}
+void parse_args(int argc, char *argv[], struct options *opts, char **target) {
+    int opt;
+    const struct option long_options[] = {
+        {"verbose", no_argument, NULL, 'v'},
+        {"help", no_argument, NULL, 'h'},
+        {"flood", no_argument, NULL, 'f'},
+        {"timeout", required_argument, NULL, 'w'},
+        {"count", required_argument, NULL, 'c'},
+        {"interval", required_argument, NULL, 'i'},
+        {"ttl", required_argument, NULL, 't'},
+        {NULL, 0, NULL, 0}
+    };
 
-	while ((opt = getopt(argc, argv, "v?hf:n:w:W:l:c:i:")) != -1) {
-		switch (opt) {
-			case 'v':
-				opts->verbose = 1;
-				break;
-			case '?':
-			case 'h':
-				print_help(argv[0]);
-				break;
-			case 'f':
-				opts->flood = 1;
-				break;
-			case 'n':
-				opts->resolve = 1;
-				break;
-			case 'w':
-			case 'W':
-				opts->timeout = load_value(argv[0], optarg);
-				break;
-			case 'l':
-				opts->packet_size = load_value(argv[0], optarg);
-				break;
-			case 'c':
-				opts->count = load_value(argv[0], optarg);
-				break;
-			case 'i':
-				opts->interval = load_value(argv[0], optarg);
-				break;
-			//case 't':
+    if (argc < 2) {
+        fprintf(stderr, "%s: missing host operand\nTry '%s -h' or '%s --help' for more information.\n", argv[0], argv[0], argv[0]);
+        exit(EXIT_FAILURE);
+    }
 
-			default:
-				exit(EXIT_FAILURE);
-		}
-	}
+    while ((opt = getopt_long(argc, argv, "v?hfw:c:i:t:", long_options, NULL)) != -1) {
+        switch (opt) {
+            case 'v':
+                opts->verbose = 1;
+                break;
+            case '?':
+            case 'h':
+                print_help(argv[0]);
+                break;
+            case 'f':
+                opts->flood = 1;
+                break;
+            case 'w':
+                opts->timeout = load_value(argv[0], optarg);
+                break;
+            case 'c':
+                opts->count = load_value(argv[0], optarg);
+                break;
+            case 'i':
+                opts->interval = load_value(argv[0], optarg);
+                break;
+            case 't':
+                opts->ttl = load_value(argv[0], optarg);
+                break;
+            default:
+                exit(EXIT_FAILURE);
+        }
+    }
+
+	check_combinations(opts);
 
 	printf("\
 		OPTIONS :\n\
@@ -96,18 +91,16 @@ void parse_args(int argc, char *argv[], struct options *opts, char **target)
 		flood = %ld\n\
 		count = %ld\n\
 		interval = %ld\n\
-		packet_size = %ld\n\
 		timeout = %ld\n\
 		ttl = %ld\n\
-			", opts->verbose, opts->resolve, opts->flood, opts->count, opts->interval, opts->packet_size, opts->timeout, opts->ttl);
-	check_combinations(opts);
+			", opts->verbose, opts->resolve, opts->flood, opts->count, opts->interval, opts->timeout, opts->ttl);
 
-	if (optind < argc)
-		*target = argv[optind];
-	else {
-		fprintf(stderr, "%s: missing host operand\n", argv[0]);
-		exit(EXIT_FAILURE);
-	}
+    if (optind < argc)
+        *target = argv[optind];
+    else {
+        fprintf(stderr, "%s: missing host operand\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
 }
 
 int	get_hostname_address(char *hostname, char address[INET_ADDRSTRLEN])
@@ -146,4 +139,18 @@ int get_domain_name(char ip_addr[INET_ADDRSTRLEN], char domain_name[NI_MAXHOST])
 	}
 
 	return 0; // Return 0 if successful
+}
+
+struct stats *stats_singleton(void)
+{
+	static struct stats stats;
+	static bool			first = true;
+
+	if (first)
+	{
+		bzero(&stats, sizeof(struct stats));
+		first = false;
+	}
+
+	return (&stats);
 }

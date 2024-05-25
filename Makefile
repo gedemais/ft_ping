@@ -2,11 +2,12 @@ NAME=ft_ping
 INET_PING=ping
 
 CC=gcc
-CFLAGS=-Wall -Werror -Wextra -std=gnu99
+CFLAGS=-Wall -Werror -Wextra -std=gnu99 -g3
 
 SRC=src/main.c\
 	src/send.c\
-	src/utils.c
+	src/utils.c\
+	src/stats.c
 
 OBJ=$(SRC:.c=.o)
 
@@ -26,7 +27,6 @@ $(INET_PING):
 
 clean:
 	rm -rf $(OBJ)
-	rm -rf inetutils-2.0
 
 fclean: clean
 	rm -rf $(NAME) $(INET_PING) inetutils-2.0.tar.xz
