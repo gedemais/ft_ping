@@ -1,13 +1,17 @@
 #include "main.h"
 #include <getopt.h>
 
-static void	check_combinations(struct options *opts)
+static void	check_combinations(struct options *opts, char *bin_name)
 {
-	if (opts->flood == 1)
-		opts->interval = 0;
+	if (opts->flood == 1 && opts->interval != FLT_MAX)
+		fprintf(stderr, "%s: -f and -i incompatible options\n", bin_name);
+	else
+		return ;
+
+	exit(EXIT_FAILURE);
 }
 
-static uint64_t	load_value(char *bin_name, char *optarg)
+static uint64_t	load_int_value(char *bin_name, char *optarg)
 {
 	char		*err_ptr;
 	uint64_t	result;
@@ -22,8 +26,24 @@ static uint64_t	load_value(char *bin_name, char *optarg)
 	return (result);
 }
 
+static float	load_float_value(char *bin_name, char *optarg)
+{
+	char		*err_ptr;
+	float		result;
+
+	result = strtof(optarg, &err_ptr);
+	if (result > UINT_MAX)
+	{
+		fprintf(stderr, "%s: Invalid number format : %s\n", bin_name, err_ptr);
+		exit(EXIT_FAILURE);
+	}
+	return (result);
+}
+
+
 void print_help(char *prog_name) {
-    printf("Usage: %s [options] target\n", prog_name);
+    printf("Usage: %s [OPTION...] HOST ...\n", prog_name);
+	printf("Send ICMP ECHO_REQUEST packets to network hosts.\n");
     printf("Options:\n");
     printf("  -v, --verbose       Enable verbose output\n");
     printf("  -h, --help          Display this help message\n");
@@ -66,25 +86,28 @@ void parse_args(int argc, char *argv[], struct options *opts, char **target) {
                 opts->flood = 1;
                 break;
             case 'w':
-                opts->timeout = load_value(argv[0], optarg);
+                opts->timeout = load_float_value(argv[0], optarg);
                 break;
             case 'c':
-                opts->count = load_value(argv[0], optarg);
+                opts->count = load_int_value(argv[0], optarg);
                 break;
             case 'i':
-                opts->interval = load_value(argv[0], optarg);
+                opts->interval = load_float_value(argv[0], optarg);
                 break;
             case 't':
-                opts->ttl = load_value(argv[0], optarg);
+                opts->ttl = load_int_value(argv[0], optarg);
                 break;
             default:
                 exit(EXIT_FAILURE);
         }
     }
 
-	check_combinations(opts);
+	check_combinations(opts, argv[0]);
 
-	printf("\
+	if (opts->interval == FLT_MAX)
+		opts->interval = 1;
+
+/*	printf("\
 		OPTIONS :\n\
 		verbose = %ld\n\
 		resolve = %ld\n\
@@ -93,7 +116,7 @@ void parse_args(int argc, char *argv[], struct options *opts, char **target) {
 		interval = %ld\n\
 		timeout = %ld\n\
 		ttl = %ld\n\
-			", opts->verbose, opts->resolve, opts->flood, opts->count, opts->interval, opts->timeout, opts->ttl);
+			", opts->verbose, opts->resolve, opts->flood, opts->count, opts->interval, opts->timeout, opts->ttl);*/
 
     if (optind < argc)
         *target = argv[optind];
@@ -113,7 +136,7 @@ int	get_hostname_address(char *hostname, char address[INET_ADDRSTRLEN])
 
 	int status = getaddrinfo(hostname, NULL, &hints, &res);
 	if (status != 0) {
-		fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
+		fprintf(stderr, "./ft_ping: unknown host\n");
 		return 1;
 	}
 

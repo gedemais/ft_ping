@@ -61,15 +61,17 @@ void handle_sigint(int sig) {
 
 
 int main(int argc, char *argv[]) {
-    struct	options opts = {0};
-	struct	stats *stats;
-    char	*target = NULL;
-	char	address[INET_ADDRSTRLEN];
-	char	domain_name[NI_MAXHOST];
+    struct		options opts = {0};
+	struct		stats *stats;
+    char		*target = NULL;
+	char		address[INET_ADDRSTRLEN];
+	char		domain_name[NI_MAXHOST];
+	const int	pid = getpid();
 
+    memset(&opts, 0, sizeof(struct options));
     opts.packet_size = 64; // Default packet size
 	opts.timeout = 1000; // Default timeout
-	opts.interval = 1; // Default interval
+	opts.interval = FLT_MAX; // Default interval
     parse_args(argc, argv, &opts, &target);
 
     int sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
@@ -90,14 +92,14 @@ int main(int argc, char *argv[]) {
 
     int s = inet_pton(AF_INET, address, &dest_addr.sin_addr);
     if (s <= 0) {
-        if (s == 0)
-            fprintf(stderr, "Not in presentation format\n");
-        else
-            perror("inet_pton");
         exit(EXIT_FAILURE);
     }
 
-    printf("PING %s (%s): %ld data bytes.\n", target, address, opts.packet_size - sizeof(struct icmphdr));
+    printf("PING %s (%s): %ld data bytes", target, address, opts.packet_size - sizeof(struct icmphdr));
+	if (opts.verbose == 1)
+		printf(", id 0x%04x = %d\n", pid, pid);
+	else
+		printf("\n");
 
 	signal(SIGINT, handle_sigint);
 
@@ -111,7 +113,7 @@ int main(int argc, char *argv[]) {
 		struct timeval tv_in;
 		send_ping(sockfd, &dest_addr, i, &opts, stats);
 		recv_ping(sockfd, i, &tv_in, &opts);
-		sleep(opts.interval);
+		usleep(opts.interval * 1000000.0f);
 		i++;
 	}
 

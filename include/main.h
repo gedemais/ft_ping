@@ -13,6 +13,7 @@
 #include <netdb.h>
 #include <signal.h>
 #include <ctype.h>
+#include <float.h>
 
 #define PACKET_SIZE 64
 #define MAX_PACKET_SIZE 65536
@@ -34,8 +35,8 @@ struct options {
     uint64_t	flood;
     uint64_t	pad;
     uint64_t	count;
-    uint64_t	interval;
-    uint64_t	timeout;
+    float		interval;
+    float		timeout;
     uint64_t	ttl;
 };
 
