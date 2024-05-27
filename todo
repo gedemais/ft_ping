@@ -1,15 +1,4 @@
-getopt_long + strtoul (pointeur sur le charactere d'erreur quand strtoul fail)
+Droits root
 
-Invalid address
-Valid address
-Invalid domain name
-Valid domain name
 
-(DUP!) at end of line (obtained when launching on 192.168.1.255)
-
-sendto : permission denied (ft_ping on the same address)
-
-Test options :
--i
--f
--s
+Compter les dups et les afficher a la fin
