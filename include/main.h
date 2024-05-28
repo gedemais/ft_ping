@@ -48,3 +48,4 @@ int				get_domain_name(char ip_addr[INET_ADDRSTRLEN], char domain_name[NI_MAXHOS
 void			display_stats(struct stats *stats);
 void			send_ping(int sockfd, struct sockaddr_in *dest_addr, uint64_t seq_num, struct options *opts, struct stats *stats);
 struct stats	*stats_singleton(void);
+void			print_ip_data(struct ip *ip);

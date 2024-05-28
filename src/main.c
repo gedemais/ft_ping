@@ -14,11 +14,10 @@ void recv_ping(int sockfd, int seq_num, struct timeval *tv_in, struct options *o
 	gettimeofday(&tv_out, NULL);
 
 	while (1) {
-		(void)opts;
 		struct timeval timeout;
-		timeout.tv_sec = 0;
-		//timeout.tv_usec = opts->timeout * 1000;
-		timeout.tv_usec = 1000;
+		timeout.tv_sec = 1;
+		timeout.tv_usec = 0;
+
 		fd_set readfds;
 		FD_ZERO(&readfds);
 		FD_SET(sockfd, &readfds);
@@ -28,7 +27,6 @@ void recv_ping(int sockfd, int seq_num, struct timeval *tv_in, struct options *o
 			perror("select");
 			exit(EXIT_FAILURE);
 		} else if (ready == 0) {
-			//printf("Request timed out for sequence %d\n", seq_num);
 			return;
 		}
 
@@ -38,10 +36,12 @@ void recv_ping(int sockfd, int seq_num, struct timeval *tv_in, struct options *o
 			exit(EXIT_FAILURE);
 		}
 
-		struct iphdr *ip_hdr = (struct iphdr *)recv_buf;
-		struct icmp *icmp_hdr = (struct icmp *)(recv_buf + (ip_hdr->ihl << 2));
+		struct iphdr	*ip_hdr = (struct iphdr *)recv_buf;
+		struct icmp		*icmp_hdr = (struct icmp *)(recv_buf + (ip_hdr->ihl << 2));
+		struct ip		*ip = &icmp_hdr->icmp_ip;
 
-		if (icmp_hdr->icmp_type == ICMP_ECHOREPLY && icmp_hdr->icmp_id == getpid() && icmp_hdr->icmp_seq == seq_num) {
+		if (icmp_hdr->icmp_type == ICMP_ECHOREPLY && icmp_hdr->icmp_id == getpid() && icmp_hdr->icmp_seq == seq_num)
+		{
 			gettimeofday(tv_in, NULL);
 			double rtt = (tv_in->tv_sec - tv_out.tv_sec) * 1000.0 + (tv_in->tv_usec - tv_out.tv_usec) / 1000.0;
 			printf("%ld bytes from %s: icmp_seq=%d ttl=%d time=%.3f ms\n", recv_size - sizeof(struct iphdr), inet_ntoa(recv_addr.sin_addr), seq_num, ip_hdr->ttl, rtt);
@@ -49,28 +49,34 @@ void recv_ping(int sockfd, int seq_num, struct timeval *tv_in, struct options *o
 			fflush(stdout);
 			return;
 		}
-		else if (icmp_hdr->icmp_type == ICMP_TIME_EXCEEDED && icmp_hdr->icmp_code == ICMP_EXC_TTL)
-			printf("Time to Live exceeded (TTL expired)\n");
-        else if (icmp_hdr->icmp_type == ICMP_DEST_UNREACH) {
-            switch (icmp_hdr->icmp_code) {
-                case ICMP_NET_UNREACH:
-                    printf("Destination Net Unreachable\n");
-                    break;
-                case ICMP_HOST_UNREACH:
-                    printf("Destination Host Unreachable\n");
-                    break;
-                case ICMP_PROT_UNREACH:
-                    printf("Destination Protocol Unreachable\n");
-                    break;
-                case ICMP_PORT_UNREACH:
-                    printf("Destination Port Unreachable\n");
-                    break;
-                default:
-                    printf("Destination Unreachable, code=%d\n", icmp_hdr->icmp_code);
-                    break;
-            }
-        }
-		fflush(stdout);
+		else
+		{
+			if (icmp_hdr->icmp_type == ICMP_TIME_EXCEEDED && icmp_hdr->icmp_code == ICMP_EXC_TTL)
+				printf("%ld bytes from %s: Time to Live exceeded (TTL expired)\n", recv_size - sizeof(struct iphdr), inet_ntoa(recv_addr.sin_addr));
+			else if (icmp_hdr->icmp_type == ICMP_DEST_UNREACH) {
+				switch (icmp_hdr->icmp_code) {
+					case ICMP_NET_UNREACH:
+						printf("%ld bytes from %s: Destination Net Unreachable\n", recv_size - sizeof(struct iphdr), inet_ntoa(recv_addr.sin_addr));
+						break;
+					case ICMP_HOST_UNREACH:
+						printf("%ld bytes from %s: Destination Host Unreachable\n", recv_size - sizeof(struct iphdr), inet_ntoa(recv_addr.sin_addr));
+						break;
+					case ICMP_PROT_UNREACH:
+						printf("%ld bytes from %s: Destination Protocol Unreachable\n", recv_size - sizeof(struct iphdr), inet_ntoa(recv_addr.sin_addr));
+						break;
+					case ICMP_PORT_UNREACH:
+						printf("%ld bytes from %s: Destination Port Unreachable\n", recv_size - sizeof(struct iphdr), inet_ntoa(recv_addr.sin_addr));
+						break;
+					default:
+						printf("%ld bytes from %s: Destination Unreachable, code=%d\n", recv_size - sizeof(struct iphdr), inet_ntoa(recv_addr.sin_addr), icmp_hdr->icmp_code);
+						break;
+				}
+			}
+
+			if (opts->verbose)
+				print_ip_data(ip);
+			fflush(stdout);
+		}
 	}
 }
 
@@ -121,6 +127,9 @@ int main(int argc, char *argv[]) {
 	char		domain_name[NI_MAXHOST];
 	const int	pid = getpid();
 
+	static struct timeval exec_start, now, uptime;
+	gettimeofday(&exec_start, NULL);
+
 	memset(&opts, 0, sizeof(struct options));
 	opts.packet_size = 64; // Default packet size
 	opts.timeout = 1000; // Default timeout
@@ -160,16 +169,8 @@ int main(int argc, char *argv[]) {
 
 	printf("PING %s (%s): %ld data bytes", target, address, opts.packet_size - sizeof(struct icmphdr));
 	if (opts.verbose == 1)
-	{
-
 		printf(", id 0x%04x = %d", pid, pid);
-		//printf ("IP Hdr Dump:\n ");
-		//for (j = 0; j < sizeof (*ip); ++j)
-		//	printf ("%02x%s", *((unsigned char *) ip + j), (j % 2) ? " " : "");
-		printf ("\n");
-	}
-	else
-		printf("\n");
+	printf ("\n");
 
 	signal(SIGINT, handle_sigint);
 
@@ -180,15 +181,25 @@ int main(int argc, char *argv[]) {
 	// Ping main loop
 	while (opts.count == 0 || i < opts.count)
 	{
-		struct timeval tv_in;
+		struct timeval tv_in; 
 		send_ping(sockfd, &dest_addr, i, &opts, stats);
 		recv_ping(sockfd, i, &tv_in, &opts);
-		usleep(opts.interval * 1000000.0f);
 		i++;
+		i == opts.count ? (void)i : usleep(opts.interval * 1000000.0f);
+
+		gettimeofday(&now, NULL);
+		timersub(&now, &exec_start, &uptime);
+
+		if (opts.timeout > 0 && uptime.tv_sec > opts.timeout)
+		{
+			display_stats(stats);
+			close(sockfd);
+			return (0);
+		}
 	}
 
 	close(sockfd);
 
 	display_stats(stats);
-	return 0;
+	return (0);
 }
