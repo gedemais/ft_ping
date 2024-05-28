@@ -49,7 +49,27 @@ void recv_ping(int sockfd, int seq_num, struct timeval *tv_in, struct options *o
 			fflush(stdout);
 			return;
 		}
-		printf("TYPE : %d\n", icmp_hdr->icmp_type);
+		else if (icmp_hdr->icmp_type == ICMP_TIME_EXCEEDED && icmp_hdr->icmp_code == ICMP_EXC_TTL)
+			printf("Time to Live exceeded (TTL expired)\n");
+        else if (icmp_hdr->icmp_type == ICMP_DEST_UNREACH) {
+            switch (icmp_hdr->icmp_code) {
+                case ICMP_NET_UNREACH:
+                    printf("Destination Net Unreachable\n");
+                    break;
+                case ICMP_HOST_UNREACH:
+                    printf("Destination Host Unreachable\n");
+                    break;
+                case ICMP_PROT_UNREACH:
+                    printf("Destination Protocol Unreachable\n");
+                    break;
+                case ICMP_PORT_UNREACH:
+                    printf("Destination Port Unreachable\n");
+                    break;
+                default:
+                    printf("Destination Unreachable, code=%d\n", icmp_hdr->icmp_code);
+                    break;
+            }
+        }
 		fflush(stdout);
 	}
 }
