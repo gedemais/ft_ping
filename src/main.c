@@ -14,9 +14,11 @@ void recv_ping(int sockfd, int seq_num, struct timeval *tv_in, struct options *o
 	gettimeofday(&tv_out, NULL);
 
 	while (1) {
+		(void)opts;
 		struct timeval timeout;
 		timeout.tv_sec = 0;
-		timeout.tv_usec = opts->timeout * 1000;
+		//timeout.tv_usec = opts->timeout * 1000;
+		timeout.tv_usec = 1000;
 		fd_set readfds;
 		FD_ZERO(&readfds);
 		FD_SET(sockfd, &readfds);
@@ -47,6 +49,8 @@ void recv_ping(int sockfd, int seq_num, struct timeval *tv_in, struct options *o
 			fflush(stdout);
 			return;
 		}
+		printf("TYPE : %d\n", icmp_hdr->icmp_type);
+		fflush(stdout);
 	}
 }
 
@@ -59,19 +63,20 @@ void handle_sigint(int sig) {
 	exit(0);
 }
 
-int	open_raw_socket(int *sockfd)
+int	open_raw_socket(void)
 {
+	int	sockfd;
 	struct protoent *proto = getprotobyname ("icmp");
 
-	*sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-	if (*sockfd < 0)
+	sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+	if (sockfd < 0)
 	{
 		if (errno == EPERM || errno == EACCES)
 		{
 			errno = 0;
 
-			*sockfd = socket (AF_INET, SOCK_DGRAM, proto->p_proto);
-			if (*sockfd < 0)
+			sockfd = socket (AF_INET, SOCK_DGRAM, proto->p_proto);
+			if (sockfd < 0)
 			{
 				if (errno == EPERM || errno == EACCES || errno == EPROTONOSUPPORT)
 					fprintf (stderr, "ping: Lacking privilege for icmp socket.\n");
@@ -84,7 +89,7 @@ int	open_raw_socket(int *sockfd)
 		else
 			return (-1);
 	}
-	return (0);
+	return (sockfd);
 }
 
 
@@ -102,9 +107,19 @@ int main(int argc, char *argv[]) {
 	opts.interval = FLT_MAX; // Default interval
 	parse_args(argc, argv, &opts, &target);
 
-	int sockfd = open_raw_socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+	int sockfd = open_raw_socket();
 	if (sockfd < 0) {
-		perror("socket");
+		exit(EXIT_FAILURE);
+	}
+
+	int one = 1;
+	setsockopt (sockfd, SOL_SOCKET, SO_BROADCAST, (char *)&one, sizeof(one));
+	setsockopt (sockfd, IPPROTO_IP, IP_TTL, &opts.ttl, sizeof(opts.ttl));
+
+	/* Reset root privileges */
+	if (setuid (getuid ()) != 0)
+	{
+		perror(strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
@@ -125,7 +140,14 @@ int main(int argc, char *argv[]) {
 
 	printf("PING %s (%s): %ld data bytes", target, address, opts.packet_size - sizeof(struct icmphdr));
 	if (opts.verbose == 1)
-		printf(", id 0x%04x = %d\n", pid, pid);
+	{
+
+		printf(", id 0x%04x = %d", pid, pid);
+		//printf ("IP Hdr Dump:\n ");
+		//for (j = 0; j < sizeof (*ip); ++j)
+		//	printf ("%02x%s", *((unsigned char *) ip + j), (j % 2) ? " " : "");
+		printf ("\n");
+	}
 	else
 		printf("\n");
 
